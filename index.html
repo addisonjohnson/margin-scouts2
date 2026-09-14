@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Margin Scouts — Find what's worth selling</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap');
+
+  :root{
+    --bg: #0E1116;
+    --panel: #161B22;
+    --panel-2: #1C222B;
+    --border: #2A313C;
+    --text: #E6E8EB;
+    --muted: #8B94A3;
+    --gold: #E3B341;
+    --green: #3FB68B;
+    --red: #E5534B;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Manrope', sans-serif;
+    line-height:1.5;
+  }
+  h1, h2, h3, .logo, .tool-bar button, .unlock-btn{
+    font-family:'Space Grotesk', sans-serif;
+  }
+  .mono{
+    font-family:'Manrope', sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+
+  a{color:inherit;}
+
+  /* ---- Nav ---- */
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:22px 40px;
+    border-bottom:1px solid var(--border);
+  }
+  .logo{
+    font-weight:700;
+    font-size:19px;
+    letter-spacing:-0.02em;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .logo::before{
+    content:"";
+    width:9px;height:9px;
+    background:var(--gold);
+    display:inline-block;
+  }
+  nav a{
+    text-decoration:none;
+    color:var(--muted);
+    font-size:14px;
+    margin-left:28px;
+  }
+  nav a:hover{color:var(--text);}
+
+  /* ---- Hero ---- */
+  .hero{
+    max-width:1120px;
+    margin:0 auto;
+    padding:90px 40px 60px;
+    display:grid;
+    grid-template-columns:1.1fr 0.9fr;
+    gap:60px;
+    align-items:center;
+  }
+  .hero h1{
+    font-size:clamp(34px, 4.5vw, 54px);
+    line-height:1.08;
+    letter-spacing:-0.02em;
+    margin:0 0 22px;
+    font-weight:600;
+  }
+  .hero p{
+    color:var(--muted);
+    font-size:17px;
+    max-width:480px;
+    margin:0 0 30px;
+  }
+  .ticker{
+    display:inline-block;
+    padding:6px 12px;
+    border:1px solid var(--border);
+    color:var(--green);
+    font-size:12.5px;
+    margin-bottom:22px;
+    background:var(--panel);
+  }
+  .ticker span{color:var(--muted);}
+
+  .hero-visual{
+    border:1px solid var(--border);
+    background:var(--panel);
+    padding:22px;
+    font-family:'Manrope', sans-serif; font-variant-numeric: tabular-nums;
+    font-size:13px;
+  }
+  .hero-visual .row{
+    display:flex;
+    justify-content:space-between;
+    padding:9px 0;
+    border-bottom:1px solid var(--border);
+  }
+  .hero-visual .row:last-child{border-bottom:none;}
+  .hero-visual .label{color:var(--muted);}
+  .up{color:var(--green);}
+  .down{color:var(--red);}
+
+  /* ---- Search / Tool ---- */
+  .tool{
+    max-width:1120px;
+    margin:0 auto;
+    padding:20px 40px 100px;
+  }
+  .tool-bar{
+    display:flex;
+    border:1px solid var(--border);
+    background:var(--panel);
+  }
+  .tool-bar input{
+    flex:1;
+    background:transparent;
+    border:none;
+    outline:none;
+    color:var(--text);
+    font-family:'Manrope', sans-serif; font-variant-numeric: tabular-nums;
+    font-size:15px;
+    padding:18px 20px;
+  }
+  .tool-bar input::placeholder{color:var(--muted);}
+  .tool-bar button{
+    background:var(--gold);
+    color:#0E1116;
+    border:none;
+    padding:0 30px;
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600;
+    font-size:15px;
+    cursor:pointer;
+    transition:background .15s ease;
+  }
+  .tool-bar button:hover{background:#f0c765;}
+  .tool-bar button:disabled{background:var(--border); color:var(--muted); cursor:not-allowed;}
+
+  .hint{color:var(--muted); font-size:13px; margin-top:10px;}
+
+  /* ---- Results ---- */
+  #results{margin-top:40px; display:none;}
+  .results-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:20px;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .results-head h2{
+    font-size:20px;
+    font-weight:600;
+    margin:0;
+  }
+  .results-head .query{color:var(--gold);}
+  .verdict{
+    font-family:'Manrope', sans-serif; font-variant-numeric: tabular-nums;
+    font-size:13px;
+    padding:6px 12px;
+    border:1px solid var(--border);
+  }
+  .verdict.go{color:var(--green); border-color:var(--green);}
+  .verdict.caution{color:var(--gold); border-color:var(--gold);}
+  .verdict.avoid{color:var(--red); border-color:var(--red);}
+
+  .grid{
+    display:grid;
+    grid-template-columns:1.3fr 1fr 1fr;
+    gap:1px;
+    background:var(--border);
+    border:1px solid var(--border);
+    margin-bottom:1px;
+  }
+  .card{
+    background:var(--panel);
+    padding:22px;
+  }
+  .card .k{
+    color:var(--muted);
+    font-size:12.5px;
+    margin-bottom:10px;
+  }
+  .card .v{
+    font-family:'Manrope', sans-serif; font-variant-numeric: tabular-nums;
+    font-size:26px;
+    font-weight:500;
+  }
+  .card .sub{
+    font-size:12.5px;
+    color:var(--muted);
+    margin-top:6px;
+  }
+
+  .bars{
+    display:flex;
+    align-items:flex-end;
+    gap:4px;
+    height:56px;
+    margin-top:12px;
+  }
+  .bars i{
+    flex:1;
+    background:var(--gold);
+    opacity:.85;
+    display:block;
+  }
+
+  .blurred{
+    position:relative;
+    filter:blur(7px);
+    user-select:none;
+    pointer-events:none;
+  }
+
+  .paywall{
+    margin-top:-1px;
+    border:1px solid var(--border);
+    border-top:none;
+    background:var(--panel-2);
+    padding:40px;
+    text-align:center;
+  }
+  .paywall h3{
+    margin:0 0 8px;
+    font-size:19px;
+    font-weight:600;
+  }
+  .paywall p{
+    color:var(--muted);
+    font-size:14.5px;
+    max-width:420px;
+    margin:0 auto 24px;
+  }
+  .paywall .price{
+    font-family:'Manrope', sans-serif; font-variant-numeric: tabular-nums;
+    font-size:30px;
+    color:var(--gold);
+    margin-bottom:20px;
+  }
+  .paywall .price sup{font-size:15px; color:var(--muted); margin-left:6px;}
+  .unlock-btn{
+    background:var(--gold);
+    color:#0E1116;
+    border:none;
+    padding:15px 34px;
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600;
+    font-size:15px;
+    cursor:pointer;
+  }
+  .unlock-btn:hover{background:#f0c765;}
+  .paywall .fine{
+    margin-top:16px;
+    font-size:12px;
+    color:var(--muted);
+  }
+
+  #fullReport{display:none; position:relative; margin-top:0;}
+
+  footer{
+    border-top:1px solid var(--border);
+    padding:30px 40px;
+    color:var(--muted);
+    font-size:13px;
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+
+  @media (max-width:840px){
+    .hero{grid-template-columns:1fr; padding-top:60px;}
+    .grid{grid-template-columns:1fr;}
+    header{padding:18px 22px;}
+    .hero, .tool{padding-left:22px; padding-right:22px;}
+    nav a{margin-left:16px; font-size:13px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Margin Scouts</div>
+  <nav>
+    <a href="#tool">Find a product</a>
+    <a href="#how">How it works</a>
+  </nav>
+</header>
+
+<section class="hero">
+  <div>
+    <div class="ticker"><span class="mono">LIVE SIGNAL</span> &nbsp; enamel pins <span class="up">▲ demand rising</span></div>
+    <h1>Know what to sell before you buy inventory.</h1>
+    <p>Type a product idea. Get an instant read on demand, competition, and margin — so you stop guessing and stop buying pallets of things nobody wants.</p>
+    <p class="hint">One report, $4.99. No subscription, no account needed.</p>
+  </div>
+  <div class="hero-visual">
+    <div class="row"><span class="label">insulated tumblers</span><span class="up">Opportunity 82</span></div>
+    <div class="row"><span class="label">phone ring holders</span><span class="down">Opportunity 24</span></div>
+    <div class="row"><span class="label">pet grooming gloves</span><span class="up">Opportunity 71</span></div>
+    <div class="row"><span class="label">generic phone cases</span><span class="down">Opportunity 12</span></div>
+    <div class="row"><span class="label">desk cable organizers</span><span class="up">Opportunity 64</span></div>
+  </div>
+</section>
+
+<section class="tool" id="tool">
+  <div class="tool-bar">
+    <input id="queryInput" type="text" placeholder="e.g. bamboo cutting board, weighted blanket, car seat organizer..." maxlength="60">
+    <button id="analyzeBtn" onclick="runAnalysis()">Analyze</button>
+  </div>
+  <div class="hint">Try a specific product, not a category — "ceramic pour-over dripper" beats "kitchenware."</div>
+
+  <div id="results">
+    <div class="results-head">
+      <h2>Report for <span class="query mono" id="resultQuery"></span></h2>
+      <div class="verdict mono" id="verdictBadge"></div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="k">Opportunity score</div>
+        <div class="v" id="scoreVal">—</div>
+        <div class="sub" id="scoreSub"></div>
+      </div>
+      <div class="card">
+        <div class="k">Est. monthly searches</div>
+        <div class="v" id="searchVal">—</div>
+        <div class="sub">across major marketplaces</div>
+      </div>
+      <div class="card">
+        <div class="k">Competition</div>
+        <div class="v" id="compVal">—</div>
+        <div class="sub" id="compSub"></div>
+      </div>
+    </div>
+
+    <div id="lockedZone">
+      <div class="grid blurred">
+        <div class="card">
+          <div class="k">12-month demand trend</div>
+          <div class="bars" id="fakeBars"></div>
+        </div>
+        <div class="card">
+          <div class="k">Suggested sell price</div>
+          <div class="v">$XX.XX</div>
+          <div class="sub">based on comparable listings</div>
+        </div>
+        <div class="card">
+          <div class="k">Est. margin at typical cost</div>
+          <div class="v">XX%</div>
+          <div class="sub">landed cost vs. sell price</div>
+        </div>
+      </div>
+      <div class="paywall">
+        <h3>Unlock the full report</h3>
+        <p>Trend history, suggested pricing, margin estimate, and the top 5 close competitors with their weak points.</p>
+        <div class="price">$4.99 <sup>one-time</sup></div>
+        <button class="unlock-btn" onclick="startCheckout()">Unlock this report</button>
+        <div class="fine">Secure payment via Stripe. Report unlocks immediately after payment.</div>
+      </div>
+    </div>
+
+    <div id="fullReport">
+      <div class="grid">
+        <div class="card">
+          <div class="k">12-month demand trend</div>
+          <div class="bars" id="realBars"></div>
+        </div>
+        <div class="card">
+          <div class="k">Suggested sell price</div>
+          <div class="v" id="priceVal">—</div>
+          <div class="sub">based on comparable listings</div>
+        </div>
+        <div class="card">
+          <div class="k">Est. margin at typical cost</div>
+          <div class="v" id="marginVal">—</div>
+          <div class="sub">landed cost vs. sell price</div>
+        </div>
+      </div>
+      <div class="grid" style="margin-top:1px;">
+        <div class="card" style="grid-column: span 3;">
+          <div class="k">Top competing listings</div>
+          <div id="competitorList" class="mono" style="margin-top:10px; font-size:13.5px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>Margin Scouts — demo build</span>
+  <span>Data shown is illustrative until a live product-data source is connected. See README.</span>
+</footer>
+
+<script>
+/* ---------- deterministic "analysis" from the query text ----------
+   This stands in for a real data source (Keepa / Jungle Scout API /
+   RapidAPI marketplace endpoints / Amazon SP-API). Swap generateReport()
+   for a fetch() to your backend once you have a real API key — see README. */
+
+function hashString(str){
+  let h = 0;
+  for (let i=0; i<str.length; i++){
+    h = (h << 5) - h + str.charCodeAt(i);
+    h |= 0;
+  }
+  return Math.abs(h);
+}
+
+function seededRandom(seed){
+  let s = seed % 2147483647;
+  if (s <= 0) s += 2147483646;
+  return function(){
+    s = (s * 16807) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+}
+
+function generateReport(query){
+  const rand = seededRandom(hashString(query.toLowerCase().trim()));
+  const score = Math.round(15 + rand() * 80);
+  const searches = Math.round(500 + rand() * 45000);
+  const competitionRaw = rand();
+  const competitionLabel = competitionRaw < 0.33 ? "Low" : competitionRaw < 0.66 ? "Medium" : "High";
+  const price = (8 + rand() * 42).toFixed(2);
+  const margin = Math.round(20 + rand() * 45);
+  const bars = Array.from({length: 12}, () => 20 + rand() * 80);
+
+  const verdict = score >= 65 ? "go" : score >= 40 ? "caution" : "avoid";
+  const verdictText = { go: "WORTH EXPLORING", caution: "PROCEED CAREFULLY", avoid: "TOUGH MARKET" }[verdict];
+
+  const competitorNames = [
+    "Generic 3rd-party listing, 4.1★, 200+ reviews",
+    "Established brand, 4.6★, 3,000+ reviews — hard to unseat",
+    "New seller, 3.8★, under 50 reviews — weak listing photos",
+    "Mid-size brand, 4.3★, 800 reviews — no bundle offer",
+    "Budget import, 3.5★, thin description — easy to outshine"
+  ];
+
+  return { score, searches, competitionLabel, price, margin, bars, verdict, verdictText, competitorNames };
+}
+
+let currentReport = null;
+
+function runAnalysis(){
+  const input = document.getElementById('queryInput');
+  const query = input.value.trim();
+  if (!query){ input.focus(); return; }
+
+  currentReport = generateReport(query);
+  renderTeaser(query, currentReport);
+  document.getElementById('lockedZone').style.display = 'block';
+  document.getElementById('fullReport').style.display = 'none';
+  document.getElementById('results').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function renderTeaser(query, r){
+  document.getElementById('resultQuery').textContent = query;
+  document.getElementById('scoreVal').textContent = r.score;
+  document.getElementById('scoreSub').textContent = r.score >= 65 ? "Strong signal" : r.score >= 40 ? "Mixed signal" : "Weak signal";
+  document.getElementById('searchVal').textContent = r.searches.toLocaleString();
+  document.getElementById('compVal').textContent = r.competitionLabel;
+  document.getElementById('compSub').textContent = r.competitionLabel === "Low" ? "Room to enter" : r.competitionLabel === "Medium" ? "Differentiation needed" : "Crowded market";
+
+  const badge = document.getElementById('verdictBadge');
+  badge.textContent = r.verdictText;
+  badge.className = "verdict mono " + r.verdict;
+
+  const fakeBars = document.getElementById('fakeBars');
+  fakeBars.innerHTML = r.bars.map(h => `<i style="height:${h}%"></i>`).join('');
+
+  document.getElementById('results').style.display = 'block';
+}
+
+function unlockFullReport(){
+  const r = currentReport;
+  if (!r) return;
+
+  const realBars = document.getElementById('realBars');
+  realBars.innerHTML = r.bars.map(h => `<i style="height:${h}%"></i>`).join('');
+  document.getElementById('priceVal').textContent = "$" + r.price;
+  document.getElementById('marginVal').textContent = r.margin + "%";
+  document.getElementById('competitorList').innerHTML = r.competitorNames.map(c => `<div style="padding:6px 0; border-bottom:1px solid var(--border);">${c}</div>`).join('');
+
+  document.getElementById('lockedZone').style.display = 'none';
+  document.getElementById('fullReport').style.display = 'block';
+}
+
+/* ---------- payment ----------
+   Real Stripe Checkout Session, created and verified server-side by the
+   two functions in /api. Nothing about payment is trusted client-side:
+   the server confirms with Stripe that money actually moved before it
+   will hand back a report. See README for deploy + setup steps. */
+
+async function startCheckout(){
+  if (!currentReport) return;
+  const query = document.getElementById('queryInput').value.trim();
+  const btn = document.querySelector('.unlock-btn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Redirecting to payment…";
+
+  try {
+    const res = await fetch('/api/create-checkout-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.url) throw new Error(data.error || 'Checkout failed');
+    window.location.href = data.url;
+  } catch (err) {
+    console.error(err);
+    alert("Couldn't start checkout — please try again in a moment.");
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+// On load: if we're returning from Stripe with a session_id, ask the
+// server to verify payment and hand back the (server-generated) report.
+window.addEventListener('DOMContentLoaded', async () => {
+  const params = new URLSearchParams(window.location.search);
+  const sessionId = params.get('session_id');
+  if (!sessionId) return;
+
+  try {
+    const res = await fetch('/api/verify-session?session_id=' + encodeURIComponent(sessionId));
+    const data = await res.json();
+    if (res.ok && data.report){
+      document.getElementById('queryInput').value = data.query;
+      currentReport = data.report;
+      renderTeaser(data.query, data.report);
+      unlockFullReport();
+    } else {
+      alert("We couldn't confirm that payment. If you were charged, contact support and we'll sort it out.");
+    }
+  } catch (err) {
+    console.error(err);
+  }
+});
+
+document.getElementById('queryInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') runAnalysis();
+});
+</script>
+
+</body>
+</html>
