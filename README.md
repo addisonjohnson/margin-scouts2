@@ -34,6 +34,7 @@ want those instructions instead.)
    test key while you're trying this out).
 5. In your Vercel project settings → **Environment Variables**, add:
    - `STRIPE_SECRET_KEY` = your secret key
+   - `SITE_URL` = `https://marginscouts.app`
 6. Redeploy (`vercel --prod`) so the new environment variable takes effect.
 
 That's the whole setup. Test it with Stripe's test card `4242 4242 4242 4242`,

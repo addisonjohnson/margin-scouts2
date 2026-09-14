@@ -6,11 +6,15 @@
 // Vercel project settings (Settings > Environment Variables).
 
 const Stripe = require('stripe');
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = process.env.STRIPE_SECRET_KEY ? Stripe(process.env.STRIPE_SECRET_KEY) : null;
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  if (!stripe) {
+    return res.status(500).json({ error: 'Stripe is not configured' });
   }
 
   const { query } = req.body || {};
@@ -19,7 +23,10 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const origin = req.headers.origin || `https://${req.headers.host}`;
+    const origin = process.env.SITE_URL;
+    if (!origin) {
+      return res.status(500).json({ error: 'Site URL is not configured' });
+    }
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
