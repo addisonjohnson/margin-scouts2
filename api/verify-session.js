@@ -6,10 +6,14 @@
 // after asking Stripe directly whether this session was actually paid.
 
 const Stripe = require('stripe');
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = process.env.STRIPE_SECRET_KEY ? Stripe(process.env.STRIPE_SECRET_KEY) : null;
 const { generateReport } = require('./_report');
 
 module.exports = async (req, res) => {
+  if (!stripe) {
+    return res.status(500).json({ error: 'Stripe is not configured' });
+  }
+
   const sessionId = req.query.session_id;
   if (!sessionId) {
     return res.status(400).json({ error: 'Missing session_id' });
