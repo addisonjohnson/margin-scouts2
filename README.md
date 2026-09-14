@@ -88,3 +88,7 @@ from inside `generateReport()` (you'll need to make it `async` and add
   closed the tab): their `session_id` is still valid in Stripe. You could
   add a "look up my report" box that takes a session ID or receipt email
   and calls `/api/verify-session` again — happy to build that if it comes up.
+
+## Product analysis API
+
+`POST /api/analyze` accepts `{ "productName": "bamboo cutting board" }` and returns only organic Amazon search listings plus a derived opportunity score. Set `RAINFOREST_API_KEY` as a server-only Vercel environment variable before using it; never expose this value to the browser or commit it to the repository.
