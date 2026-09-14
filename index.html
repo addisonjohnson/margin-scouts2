@@ -157,6 +157,7 @@
   .tool-bar button:disabled{background:var(--border); color:var(--muted); cursor:not-allowed;}
 
   .hint{color:var(--muted); font-size:13px; margin-top:10px;}
+  .analysis-error{color:var(--red); font-size:13px; margin-top:10px;}
 
   /* ---- Results ---- */
   #results{margin-top:40px; display:none;}
@@ -330,6 +331,7 @@
     <button id="analyzeBtn" onclick="runAnalysis()">Analyze</button>
   </div>
   <div class="hint">Try a specific product, not a category — "ceramic pour-over dripper" beats "kitchenware."</div>
+  <div id="analysisError" class="analysis-error" role="alert" hidden></div>
 
   <div id="results">
     <div class="results-head">
@@ -344,14 +346,14 @@
         <div class="sub" id="scoreSub"></div>
       </div>
       <div class="card">
-        <div class="k">Est. monthly searches</div>
-        <div class="v" id="searchVal">—</div>
-        <div class="sub">across major marketplaces</div>
+        <div class="k">Suggested sell price</div>
+        <div class="v" id="teaserPriceVal">—</div>
+        <div class="sub">average organic listing price</div>
       </div>
       <div class="card">
         <div class="k">Competition</div>
         <div class="v" id="compVal">—</div>
-        <div class="sub" id="compSub"></div>
+        <div class="sub" id="compSub">organic listings found</div>
       </div>
     </div>
 
@@ -409,86 +411,65 @@
 </section>
 
 <footer>
-  <span>Margin Scouts — demo build</span>
-  <span>Data shown is illustrative until a live product-data source is connected. See README.</span>
+  <span>Margin Scouts</span>
+  <span>Product opportunity research for Amazon sellers.</span>
 </footer>
 
 <script>
-/* ---------- deterministic "analysis" from the query text ----------
-   This stands in for a real data source (Keepa / Jungle Scout API /
-   RapidAPI marketplace endpoints / Amazon SP-API). Swap generateReport()
-   for a fetch() to your backend once you have a real API key — see README. */
-
-function hashString(str){
-  let h = 0;
-  for (let i=0; i<str.length; i++){
-    h = (h << 5) - h + str.charCodeAt(i);
-    h |= 0;
-  }
-  return Math.abs(h);
-}
-
-function seededRandom(seed){
-  let s = seed % 2147483647;
-  if (s <= 0) s += 2147483646;
-  return function(){
-    s = (s * 16807) % 2147483647;
-    return (s - 1) / 2147483646;
-  };
-}
-
-function generateReport(query){
-  const rand = seededRandom(hashString(query.toLowerCase().trim()));
-  const score = Math.round(15 + rand() * 80);
-  const searches = Math.round(500 + rand() * 45000);
-  const competitionRaw = rand();
-  const competitionLabel = competitionRaw < 0.33 ? "Low" : competitionRaw < 0.66 ? "Medium" : "High";
-  const price = (8 + rand() * 42).toFixed(2);
-  const margin = Math.round(20 + rand() * 45);
-  const bars = Array.from({length: 12}, () => 20 + rand() * 80);
-
-  const verdict = score >= 65 ? "go" : score >= 40 ? "caution" : "avoid";
-  const verdictText = { go: "WORTH EXPLORING", caution: "PROCEED CAREFULLY", avoid: "TOUGH MARKET" }[verdict];
-
-  const competitorNames = [
-    "Generic 3rd-party listing, 4.1★, 200+ reviews",
-    "Established brand, 4.6★, 3,000+ reviews — hard to unseat",
-    "New seller, 3.8★, under 50 reviews — weak listing photos",
-    "Mid-size brand, 4.3★, 800 reviews — no bundle offer",
-    "Budget import, 3.5★, thin description — easy to outshine"
-  ];
-
-  return { score, searches, competitionLabel, price, margin, bars, verdict, verdictText, competitorNames };
-}
-
 let currentReport = null;
 
-function runAnalysis(){
+async function runAnalysis(){
   const input = document.getElementById('queryInput');
   const query = input.value.trim();
+  const button = document.getElementById('analyzeBtn');
+  const error = document.getElementById('analysisError');
   if (!query){ input.focus(); return; }
 
-  currentReport = generateReport(query);
-  renderTeaser(query, currentReport);
-  document.getElementById('lockedZone').style.display = 'block';
-  document.getElementById('fullReport').style.display = 'none';
-  document.getElementById('results').scrollIntoView({behavior:'smooth', block:'start'});
+  error.hidden = true;
+  button.disabled = true;
+  button.textContent = 'Analyzing…';
+
+  try {
+    const response = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productName: query })
+    });
+    const report = await response.json();
+    if (!response.ok) throw new Error(report.error || 'Analysis failed');
+
+    currentReport = report;
+    renderTeaser(query, report);
+    document.getElementById('lockedZone').style.display = 'block';
+    document.getElementById('fullReport').style.display = 'none';
+    document.getElementById('results').scrollIntoView({behavior:'smooth', block:'start'});
+  } catch (err) {
+    console.error('analyze error:', err);
+    error.textContent = "Couldn't fetch data for that product — try a different search term.";
+    error.hidden = false;
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Analyze';
+  }
 }
 
-function renderTeaser(query, r){
+function renderTeaser(query, report){
+  const score = report.opportunityScore ?? report.score;
+  const price = report.avgPrice ?? report.price;
+  const competitorCount = report.competitorCount;
+  const verdict = score >= 65 ? 'go' : score >= 40 ? 'caution' : 'avoid';
+  const verdictText = { go: 'WORTH EXPLORING', caution: 'PROCEED CAREFULLY', avoid: 'TOUGH MARKET' }[verdict];
+
   document.getElementById('resultQuery').textContent = query;
-  document.getElementById('scoreVal').textContent = r.score;
-  document.getElementById('scoreSub').textContent = r.score >= 65 ? "Strong signal" : r.score >= 40 ? "Mixed signal" : "Weak signal";
-  document.getElementById('searchVal').textContent = r.searches.toLocaleString();
-  document.getElementById('compVal').textContent = r.competitionLabel;
-  document.getElementById('compSub').textContent = r.competitionLabel === "Low" ? "Room to enter" : r.competitionLabel === "Medium" ? "Differentiation needed" : "Crowded market";
+  document.getElementById('scoreVal').textContent = score ?? '—';
+  document.getElementById('scoreSub').textContent = score >= 65 ? 'Strong signal' : score >= 40 ? 'Mixed signal' : 'Weak signal';
+  document.getElementById('teaserPriceVal').textContent = Number.isFinite(Number(price)) ? '$' + Number(price).toFixed(2) : '—';
+  document.getElementById('compVal').textContent = Number.isFinite(Number(competitorCount)) ? competitorCount.toLocaleString() : '—';
+  document.getElementById('compSub').textContent = 'organic listings found';
 
   const badge = document.getElementById('verdictBadge');
-  badge.textContent = r.verdictText;
-  badge.className = "verdict mono " + r.verdict;
-
-  const fakeBars = document.getElementById('fakeBars');
-  fakeBars.innerHTML = r.bars.map(h => `<i style="height:${h}%"></i>`).join('');
+  badge.textContent = verdictText;
+  badge.className = 'verdict mono ' + verdict;
 
   document.getElementById('results').style.display = 'block';
 }
